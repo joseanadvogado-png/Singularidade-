@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="author" content="Josean Roberto Pires Cirqueira">
+    <title>Sinfonia Magna: Singularidade Primal</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; cursor: crosshair; touch-action: none; }
+        canvas { filter: contrast(1.5); mix-blend-mode: screen; width: 100vw; height: 100vh; }
+        #info {
+            position: fixed; bottom: 5%; left: 5%; color: #f3cf7a;
+            font-family: 'Courier New', monospace; font-size: 10px;
+            opacity: 0.6; pointer-events: none; letter-spacing: 2px;
+            line-height: 1.5; z-index: 100;
+        }
+        #author-tag {
+            position: fixed; top: 5%; right: 5%; color: #f3cf7a;
+            font-family: serif; font-size: 12px; font-style: italic;
+            opacity: 0.5; letter-spacing: 3px; z-index: 100;
+            text-transform: uppercase;
+        }
+        #overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            display: flex; justify-content: center; align-items: center;
+            color: #f3cf7a; font-family: serif; letter-spacing: 8px;
+            background: rgba(0,0,0,0.9); z-index: 200; transition: 2s;
+            cursor: pointer; text-align: center; padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay">CLIQUE PARA INICIAR A SINGULARIDADE</div>
+    <div id="author-tag">Josean Roberto Pires Cirqueira</div>
+    <div id="info">
+        PRIME_FOUND: <span id="v_primo">2</span><br>
+        STATUS: SINGULARITY_ACTIVE
+    </div>
+    <canvas id="fluxo"></canvas>
+
+    <script>
+    (function() {
+        let audioCtx, analyzer, primo = 2, ativo = false, particulas = [];
+
+        function proximoPrimo(n) {
+            let candidato = n + 1;
+            while (true) {
+                let p = true;
+                for (let i = 2; i <= Math.sqrt(candidato); i++) {
+                    if (candidato % i === 0) { p = false; break; }
+                }
+                if (p) return candidato;
+                candidato++;
+            }
+        }
+
+        function dispararConsciencia() {
+            primo = proximoPrimo(primo);
+            document.getElementById('v_primo').innerText = primo;
+
+            const f = 55 * (1.618033 + (primo % 21));
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            const panner = audioCtx.createStereoPanner();
+            
+            osc.type = primo % 3 === 0 ? 'triangle' : 'sine';
+            osc.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.2);
+            panner.pan.setValueAtTime(Math.sin(primo), audioCtx.currentTime);
+            
+            g.gain.setValueAtTime(0, audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 1);
+            g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 6);
+
+            osc.connect(panner).connect(g).connect(analyzer).connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 7);
+
+            const delay = Math.max(150, 1100 - Math.log10(primo) * 120);
+            setTimeout(dispararConsciencia, delay);
+        }
+
+        function renderizarFluxo() {
+            requestAnimationFrame(renderizarFluxo);
+            const canvas = document.getElementById('fluxo');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const freqData = new Uint8Array(analyzer.frequencyBinCount);
+            analyzer.getByteFrequencyData(freqData);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#f3cf7a';
+            for(let i=0; i<canvas.width; i+=window.innerWidth/30) {
+                ctx.beginPath();
+                ctx.lineWidth = 0.5;
+                ctx.moveTo(i, 0);
+                let dist = freqData[Math.floor(i % 128)] || 0;
+                ctx.bezierCurveTo(i + dist, canvas.height * 0.3, i - dist, canvas.height * 0.7, i, canvas.height);
+                ctx.stroke();
+            }
+        }
+
+        window.onclick = function() {
+            if (!ativo) {
+                ativo = true;
+                document.getElementById('overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('overlay').remove(), 2000);
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyzer = audioCtx.createAnalyser();
+                analyzer.fftSize = 256;
+                dispararConsciencia();
+                renderizarFluxo();
+            }
+        };
+    })();
+    </script>
+</body>
+</html>
